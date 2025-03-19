@@ -3,6 +3,60 @@
 Release History
 ---------------
 
+1.0.2 (2024-08-07)
+++++++++++++++++++
+
+- fix: #1003 restore read-only enum members
+
+1.0.1 (2024-08-05)
+++++++++++++++++++
+
+- fix: #1000 add py.typed
+
+
+1.0.0 (2024-08-03)
+++++++++++++++++++
+
+- fix: #929 raises on JPEG with image/jpg MIME-type
+- fix: #943 remove mention of a Px Length subtype
+- fix: #972 next-slide-id fails in rare cases
+- fix: #990 do not require strict timestamps for Zip
+- Add type annotations
+
+
+0.6.23 (2023-11-02)
++++++++++++++++++++
+
+- fix: #912 Pillow<=9.5 constraint entails security vulnerability
+
+
+0.6.22 (2023-08-28)
++++++++++++++++++++
+
+- Add #909 Add imgW, imgH params to `shapes.add_ole_object()`
+- fix: #754 _Relationships.items() raises
+- fix: #758 quote in autoshape name must be escaped
+- fix: #746 update Python 3.x support in docs
+- fix: #748 setup's `license` should be short string
+- fix: #762 AttributeError: module 'collections' has no attribute 'abc'
+       (Windows Python 3.10+)
+
+
+0.6.21 (2021-09-20)
++++++++++++++++++++
+
+- Fix #741 _DirPkgReader must implement .__contains__()
+
+
+0.6.20 (2021-09-14)
++++++++++++++++++++
+
+- Fix #206 accommodate NULL target-references in relationships.
+- Fix #223 escape image filename that appears as literal in XML.
+- Fix #517 option to display chart categories/values in reverse order.
+- Major refactoring of ancient package loading code.
+
+
 0.6.19 (2021-05-17)
 +++++++++++++++++++
 

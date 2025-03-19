@@ -1,8 +1,8 @@
-# encoding: utf-8
+# pyright: reportPrivateUsage=false
 
-"""Unit-test suite for pptx.table module"""
+"""Unit-test suite for `pptx.table` module."""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
 import pytest
 
@@ -12,13 +12,13 @@ from pptx.oxml.ns import qn
 from pptx.oxml.table import CT_Table, CT_TableCell, TcRange
 from pptx.shapes.graphfrm import GraphicFrame
 from pptx.table import (
+    Table,
     _Cell,
     _CellCollection,
     _Column,
     _ColumnCollection,
     _Row,
     _RowCollection,
-    Table,
 )
 from pptx.text.text import TextFrame
 from pptx.util import Inches, Length, Pt
@@ -28,6 +28,8 @@ from .unitutil.mock import call, class_mock, instance_mock, property_mock
 
 
 class DescribeTable(object):
+    """Unit-test suite for `pptx.table.Table` objects."""
+
     def it_provides_access_to_its_cells(self, tbl_, tc_, _Cell_, cell_):
         row_idx, col_idx = 4, 2
         tbl_.tc.return_value = tc_
@@ -40,9 +42,18 @@ class DescribeTable(object):
         _Cell_.assert_called_once_with(tc_, table)
         assert cell is cell_
 
-    def it_provides_access_to_its_columns(self, columns_fixture):
-        table, expected_columns_ = columns_fixture
-        assert table.columns is expected_columns_
+    def it_provides_access_to_its_columns(self, request):
+        columns_ = instance_mock(request, _ColumnCollection)
+        _ColumnCollection_ = class_mock(
+            request, "pptx.table._ColumnCollection", return_value=columns_
+        )
+        tbl = element("a:tbl")
+        table = Table(tbl, None)
+
+        columns = table.columns
+
+        _ColumnCollection_.assert_called_once_with(tbl, table)
+        assert columns is columns_
 
     def it_can_iterate_its_grid_cells(self, request, _Cell_):
         tbl = element("a:tbl/(a:tr/(a:tc,a:tc),a:tr/(a:tc,a:tc))")
@@ -57,9 +68,16 @@ class DescribeTable(object):
         assert cells == expected_cells
         assert _Cell_.call_args_list == [call(tc, table) for tc in expected_tcs]
 
-    def it_provides_access_to_its_rows(self, rows_fixture):
-        table, expected_rows_ = rows_fixture
-        assert table.rows is expected_rows_
+    def it_provides_access_to_its_rows(self, request):
+        rows_ = instance_mock(request, _RowCollection)
+        _RowCollection_ = class_mock(request, "pptx.table._RowCollection", return_value=rows_)
+        tbl = element("a:tbl")
+        table = Table(tbl, None)
+
+        rows = table.rows
+
+        _RowCollection_.assert_called_once_with(tbl, table)
+        assert rows is rows_
 
     def it_updates_graphic_frame_width_on_width_change(self, dx_fixture):
         table, expected_width = dx_fixture
@@ -72,11 +90,6 @@ class DescribeTable(object):
         assert table._graphic_frame.height == expected_height
 
     # fixtures -------------------------------------------------------
-
-    @pytest.fixture
-    def columns_fixture(self, table, columns_):
-        table._columns = columns_
-        return table, columns_
 
     @pytest.fixture
     def dx_fixture(self, graphic_frame_):
@@ -92,11 +105,6 @@ class DescribeTable(object):
         expected_height = 300
         return table, expected_height
 
-    @pytest.fixture
-    def rows_fixture(self, table, rows_):
-        table._rows = rows_
-        return table, rows_
-
     # fixture components ---------------------------------------------
 
     @pytest.fixture
@@ -108,20 +116,8 @@ class DescribeTable(object):
         return instance_mock(request, _Cell)
 
     @pytest.fixture
-    def columns_(self, request):
-        return instance_mock(request, _ColumnCollection)
-
-    @pytest.fixture
     def graphic_frame_(self, request):
         return instance_mock(request, GraphicFrame)
-
-    @pytest.fixture
-    def rows_(self, request):
-        return instance_mock(request, _RowCollection)
-
-    @pytest.fixture
-    def table(self):
-        return Table(element("a:tbl"), None)
 
     @pytest.fixture
     def tbl_(self, request):
@@ -241,9 +237,7 @@ class Describe_Cell(object):
         setattr(cell, margin_prop_name, new_value)
         assert cell._tc.xml == expected_xml
 
-    def it_raises_on_margin_assigned_other_than_int_or_None(
-        self, margin_raises_fixture
-    ):
+    def it_raises_on_margin_assigned_other_than_int_or_None(self, margin_raises_fixture):
         cell, margin_attr_name, val_of_invalid_type = margin_raises_fixture
         with pytest.raises(TypeError):
             setattr(cell, margin_attr_name, val_of_invalid_type)
@@ -385,9 +379,7 @@ class Describe_Cell(object):
     def fill_fixture(self, cell):
         return cell
 
-    @pytest.fixture(
-        params=[("a:tc", 1), ("a:tc{gridSpan=2}", 1), ("a:tc{rowSpan=42}", 42)]
-    )
+    @pytest.fixture(params=[("a:tc", 1), ("a:tc{gridSpan=2}", 1), ("a:tc{rowSpan=42}", 42)])
     def height_fixture(self, request):
         tc_cxml, expected_value = request.param
         tc = element(tc_cxml)
@@ -426,9 +418,7 @@ class Describe_Cell(object):
         expected_xml = xml(expected_tc_cxml)
         return cell, margin_prop_name, new_value, expected_xml
 
-    @pytest.fixture(
-        params=["margin_left", "margin_right", "margin_top", "margin_bottom"]
-    )
+    @pytest.fixture(params=["margin_left", "margin_right", "margin_top", "margin_bottom"])
     def margin_raises_fixture(self, request):
         margin_prop_name = request.param
         cell = _Cell(element("a:tc"), None)
@@ -493,9 +483,7 @@ class Describe_Cell(object):
         range_tcs = tuple(tcs[idx] for idx in range_tc_idxs)
         return origin_tc, range_tcs
 
-    @pytest.fixture(
-        params=[("a:tc", 1), ("a:tc{rowSpan=2}", 1), ("a:tc{gridSpan=24}", 24)]
-    )
+    @pytest.fixture(params=[("a:tc", 1), ("a:tc{rowSpan=2}", 1), ("a:tc{gridSpan=24}", 24)])
     def width_fixture(self, request):
         tc_cxml, expected_value = request.param
         tc = element(tc_cxml)
@@ -565,8 +553,7 @@ class Describe_CellCollection(object):
         cell_collection = _CellCollection(tr, None)
 
         expected_cells = [
-            instance_mock(request, _Cell, name="cell%d" % idx)
-            for idx in range(len(tcs))
+            instance_mock(request, _Cell, name="cell%d" % idx) for idx in range(len(tcs))
         ]
         _Cell_.side_effect = expected_cells
         calls = [call(tc, cell_collection) for tc in tcs]
@@ -605,9 +592,7 @@ class Describe_Column(object):
 
     # fixtures -------------------------------------------------------
 
-    @pytest.fixture(
-        params=[("a:gridCol{w=914400}", Inches(1)), ("a:gridCol{w=10pt}", Pt(10))]
-    )
+    @pytest.fixture(params=[("a:gridCol{w=914400}", Inches(1)), ("a:gridCol{w=10pt}", Pt(10))])
     def width_get_fixture(self, request):
         gridCol_cxml, expected_value = request.param
         column = _Column(element(gridCol_cxml), None)
@@ -688,7 +673,6 @@ class Describe_ColumnCollection(object):
         tbl = element(tbl_cxml)
         columns = _ColumnCollection(tbl, None)
         expected_column_lst = tbl.xpath("//a:gridCol")
-        print(expected_column_lst)
         return columns, expected_column_lst
 
     @pytest.fixture(

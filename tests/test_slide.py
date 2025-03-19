@@ -1,8 +1,8 @@
-# encoding: utf-8
+# pyright: reportPrivateUsage=false
 
-"""Test suite for pptx.slide module"""
+"""Unit-test suite for `pptx.slide` module."""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
 import pytest
 
@@ -25,9 +25,6 @@ from pptx.shapes.shapetree import (
     SlideShapes,
 )
 from pptx.slide import (
-    _Background,
-    _BaseMaster,
-    _BaseSlide,
     NotesMaster,
     NotesSlide,
     Slide,
@@ -36,6 +33,9 @@ from pptx.slide import (
     SlideMaster,
     SlideMasters,
     Slides,
+    _Background,
+    _BaseMaster,
+    _BaseSlide,
 )
 from pptx.text.text import TextFrame
 
@@ -44,6 +44,8 @@ from .unitutil.mock import call, class_mock, instance_mock, method_mock, propert
 
 
 class Describe_BaseSlide(object):
+    """Unit-test suite for `pptx.slide._BaseSlide` objects."""
+
     def it_knows_its_name(self, name_get_fixture):
         base_slide, expected_value = name_get_fixture
         assert base_slide.name == expected_value
@@ -71,9 +73,7 @@ class Describe_BaseSlide(object):
         _Background_.return_value = background_
         return slide, _Background_, cSld, background_
 
-    @pytest.fixture(
-        params=[("p:sld/p:cSld", ""), ("p:sld/p:cSld{name=Foobar}", "Foobar")]
-    )
+    @pytest.fixture(params=[("p:sld/p:cSld", ""), ("p:sld/p:cSld{name=Foobar}", "Foobar")])
     def name_get_fixture(self, request):
         sld_cxml, expected_name = request.param
         base_slide = _BaseSlide(element(sld_cxml), None)
@@ -107,6 +107,8 @@ class Describe_BaseSlide(object):
 
 
 class Describe_BaseMaster(object):
+    """Unit-test suite for `pptx.slide._BaseMaster` objects."""
+
     def it_is_a_BaseSlide_subclass(self, subclass_fixture):
         base_master = subclass_fixture
         assert isinstance(base_master, _BaseSlide)
@@ -147,9 +149,7 @@ class Describe_BaseMaster(object):
 
     @pytest.fixture
     def MasterPlaceholders_(self, request, placeholders_):
-        return class_mock(
-            request, "pptx.slide.MasterPlaceholders", return_value=placeholders_
-        )
+        return class_mock(request, "pptx.slide.MasterPlaceholders", return_value=placeholders_)
 
     @pytest.fixture
     def MasterShapes_(self, request, shapes_):
@@ -165,10 +165,19 @@ class Describe_BaseMaster(object):
 
 
 class DescribeNotesSlide(object):
-    def it_can_clone_the_notes_master_placeholders(self, clone_fixture):
-        notes_slide, notes_master_, clone_placeholder_, calls = clone_fixture
+    """Unit-test suite for `pptx.slide.NotesSlide` objects."""
+
+    def it_can_clone_the_notes_master_placeholders(self, request, notes_master_, shapes_):
+        placeholders = notes_master_.placeholders = (
+            BaseShape(element("p:sp/p:nvSpPr/p:nvPr/p:ph{type=body}"), None),
+            BaseShape(element("p:sp/p:nvSpPr/p:nvPr/p:ph{type=dt}"), None),
+        )
+        property_mock(request, NotesSlide, "shapes", return_value=shapes_)
+        notes_slide = NotesSlide(None, None)
+
         notes_slide.clone_master_placeholders(notes_master_)
-        assert clone_placeholder_.call_args_list == calls
+
+        assert shapes_.clone_placeholder.call_args_list == [call(placeholders[0])]
 
     def it_provides_access_to_its_shapes(self, shapes_fixture):
         notes_slide, NotesSlideShapes_, spTree, shapes_ = shapes_fixture
@@ -177,9 +186,12 @@ class DescribeNotesSlide(object):
         assert shapes is shapes_
 
     def it_provides_access_to_its_placeholders(self, placeholders_fixture):
-        notes_slide, NotesSlidePlaceholders_, spTree, placeholders_ = (
-            placeholders_fixture
-        )
+        (
+            notes_slide,
+            NotesSlidePlaceholders_,
+            spTree,
+            placeholders_,
+        ) = placeholders_fixture
         placeholders = notes_slide.placeholders
         NotesSlidePlaceholders_.assert_called_once_with(spTree, notes_slide)
         assert placeholders is placeholders_
@@ -195,17 +207,6 @@ class DescribeNotesSlide(object):
         assert text_frame is expected_value
 
     # fixtures -------------------------------------------------------
-
-    @pytest.fixture
-    def clone_fixture(self, notes_master_, clone_placeholder_, shapes_prop_, shapes_):
-        notes_slide = NotesSlide(None, None)
-        placeholders = notes_master_.placeholders = (
-            BaseShape(element("p:sp/p:nvSpPr/p:nvPr/p:ph{type=body}"), None),
-            BaseShape(element("p:sp/p:nvSpPr/p:nvPr/p:ph{type=dt}"), None),
-        )
-        calls = [call(placeholders[0])]
-        shapes_.clone_placeholder = clone_placeholder_
-        return notes_slide, notes_master_, clone_placeholder_, calls
 
     @pytest.fixture(
         params=[
@@ -228,9 +229,7 @@ class DescribeNotesSlide(object):
         return notes_slide, expected_value
 
     @pytest.fixture(params=[True, False])
-    def notes_tf_fixture(
-        self, request, notes_placeholder_prop_, placeholder_, text_frame_
-    ):
+    def notes_tf_fixture(self, request, notes_placeholder_prop_, placeholder_, text_frame_):
         has_text_frame = request.param
         notes_slide = NotesSlide(None, None)
         if has_text_frame:
@@ -259,24 +258,16 @@ class DescribeNotesSlide(object):
     # fixture components ---------------------------------------------
 
     @pytest.fixture
-    def clone_placeholder_(self, request):
-        return method_mock(request, NotesSlideShapes, "clone_placeholder")
-
-    @pytest.fixture
     def notes_master_(self, request):
         return instance_mock(request, NotesMaster)
 
     @pytest.fixture
     def notes_placeholder_prop_(self, request, placeholder_):
-        return property_mock(
-            request, NotesSlide, "notes_placeholder", return_value=placeholder_
-        )
+        return property_mock(request, NotesSlide, "notes_placeholder", return_value=placeholder_)
 
     @pytest.fixture
     def NotesSlidePlaceholders_(self, request, placeholders_):
-        return class_mock(
-            request, "pptx.slide.NotesSlidePlaceholders", return_value=placeholders_
-        )
+        return class_mock(request, "pptx.slide.NotesSlidePlaceholders", return_value=placeholders_)
 
     @pytest.fixture
     def NotesSlideShapes_(self, request, shapes_):
@@ -292,17 +283,11 @@ class DescribeNotesSlide(object):
 
     @pytest.fixture
     def placeholders_prop_(self, request, placeholders_):
-        return property_mock(
-            request, NotesSlide, "placeholders", return_value=placeholders_
-        )
+        return property_mock(request, NotesSlide, "placeholders", return_value=placeholders_)
 
     @pytest.fixture
     def shapes_(self, request):
         return instance_mock(request, NotesSlideShapes)
-
-    @pytest.fixture
-    def shapes_prop_(self, request, shapes_):
-        return property_mock(request, NotesSlide, "shapes", return_value=shapes_)
 
     @pytest.fixture
     def text_frame_(self, request):
@@ -310,6 +295,8 @@ class DescribeNotesSlide(object):
 
 
 class DescribeSlide(object):
+    """Unit-test suite for `pptx.slide.Slide` objects."""
+
     def it_is_a_BaseSlide_subclass(self, subclass_fixture):
         slide = subclass_fixture
         assert isinstance(slide, _BaseSlide)
@@ -437,9 +424,7 @@ class DescribeSlide(object):
 
     @pytest.fixture
     def SlidePlaceholders_(self, request, placeholders_):
-        return class_mock(
-            request, "pptx.slide.SlidePlaceholders", return_value=placeholders_
-        )
+        return class_mock(request, "pptx.slide.SlidePlaceholders", return_value=placeholders_)
 
     @pytest.fixture
     def SlideShapes_(self, request, shapes_):
@@ -459,6 +444,8 @@ class DescribeSlide(object):
 
 
 class DescribeSlides(object):
+    """Unit-test suite for `pptx.slide.Slides` objects."""
+
     def it_supports_indexed_access(self, getitem_fixture):
         slides, prs_part_, rId, slide_ = getitem_fixture
         slide = slides[0]
@@ -604,6 +591,8 @@ class DescribeSlides(object):
 
 
 class DescribeSlideLayout(object):
+    """Unit-test suite for `pptx.slide.SlideLayout` objects."""
+
     def it_is_a_BaseSlide_subclass(self):
         slide_layout = SlideLayout(None, None)
         assert isinstance(slide_layout, _BaseSlide)
@@ -613,9 +602,7 @@ class DescribeSlideLayout(object):
         cloneable = list(slide_layout.iter_cloneable_placeholders())
         assert cloneable == expected_placeholders
 
-    def it_provides_access_to_its_placeholders(
-        self, LayoutPlaceholders_, placeholders_
-    ):
+    def it_provides_access_to_its_placeholders(self, LayoutPlaceholders_, placeholders_):
         sldLayout = element("p:sldLayout/p:cSld/p:spTree")
         spTree = sldLayout.xpath("//p:spTree")[0]
         slide_layout = SlideLayout(sldLayout, None)
@@ -672,9 +659,7 @@ class DescribeSlideLayout(object):
             ((PP_PLACEHOLDER.SLIDE_NUMBER, PP_PLACEHOLDER.FOOTER), ()),
         ]
     )
-    def cloneable_fixture(
-        self, request, placeholders_prop_, placeholder_, placeholder_2_
-    ):
+    def cloneable_fixture(self, request, placeholders_prop_, placeholder_, placeholder_2_):
         ph_types, expected_indices = request.param
         slide_layout = SlideLayout(None, None)
         placeholder_.element.ph_type = ph_types[0]
@@ -699,9 +684,7 @@ class DescribeSlideLayout(object):
 
     @pytest.fixture
     def LayoutPlaceholders_(self, request, placeholders_):
-        return class_mock(
-            request, "pptx.slide.LayoutPlaceholders", return_value=placeholders_
-        )
+        return class_mock(request, "pptx.slide.LayoutPlaceholders", return_value=placeholders_)
 
     @pytest.fixture
     def LayoutShapes_(self, request, shapes_):
@@ -713,9 +696,7 @@ class DescribeSlideLayout(object):
 
     @pytest.fixture
     def part_prop_(self, request, slide_layout_part_):
-        return property_mock(
-            request, SlideLayout, "part", return_value=slide_layout_part_
-        )
+        return property_mock(request, SlideLayout, "part", return_value=slide_layout_part_)
 
     @pytest.fixture
     def placeholder_(self, request):
@@ -731,9 +712,7 @@ class DescribeSlideLayout(object):
 
     @pytest.fixture
     def placeholders_prop_(self, request, placeholders_):
-        return property_mock(
-            request, SlideLayout, "placeholders", return_value=placeholders_
-        )
+        return property_mock(request, SlideLayout, "placeholders", return_value=placeholders_)
 
     @pytest.fixture
     def presentation_(self, request):
@@ -765,14 +744,14 @@ class DescribeSlideLayout(object):
 
 
 class DescribeSlideLayouts(object):
+    """Unit-test suite for `pptx.slide.SlideLayouts` objects."""
+
     def it_supports_len(self, len_fixture):
         slide_layouts, expected_value = len_fixture
         assert len(slide_layouts) == expected_value
 
     def it_can_iterate_its_slide_layouts(self, part_prop_, slide_master_part_):
-        sldLayoutIdLst = element(
-            "p:sldLayoutIdLst/(p:sldLayoutId{r:id=a},p:sldLayoutId{r:id=b})"
-        )
+        sldLayoutIdLst = element("p:sldLayoutIdLst/(p:sldLayoutId{r:id=a},p:sldLayoutId{r:id=b})")
         _slide_layouts = [
             SlideLayout(element("p:sldLayout"), None),
             SlideLayout(element("p:sldLayout"), None),
@@ -790,9 +769,7 @@ class DescribeSlideLayouts(object):
     def it_supports_indexed_access(self, slide_layout_, part_prop_, slide_master_part_):
         part_prop_.return_value = slide_master_part_
         slide_master_part_.related_slide_layout.return_value = slide_layout_
-        slide_layouts = SlideLayouts(
-            element("p:sldLayoutIdLst/p:sldLayoutId{r:id=rId1}"), None
-        )
+        slide_layouts = SlideLayouts(element("p:sldLayoutIdLst/p:sldLayoutId{r:id=rId1}"), None)
 
         slide_layout = slide_layouts[0]
 
@@ -800,15 +777,11 @@ class DescribeSlideLayouts(object):
         assert slide_layout is slide_layout_
 
     def but_it_raises_on_index_out_of_range(self, part_prop_):
-        slide_layouts = SlideLayouts(
-            element("p:sldLayoutIdLst/p:sldLayoutId{r:id=rId1}"), None
-        )
+        slide_layouts = SlideLayouts(element("p:sldLayoutIdLst/p:sldLayoutId{r:id=rId1}"), None)
         with pytest.raises(IndexError):
             slide_layouts[1]
 
-    def it_can_find_a_slide_layout_by_name(
-        self, _iter_, slide_layout_, slide_layout_2_
-    ):
+    def it_can_find_a_slide_layout_by_name(self, _iter_, slide_layout_, slide_layout_2_):
         _iter_.return_value = iter((slide_layout_, slide_layout_2_))
         slide_layout_2_.name = "pick me!"
         slide_layouts = SlideLayouts(None, None)
@@ -866,14 +839,10 @@ class DescribeSlideLayouts(object):
 
         slide_layouts.remove(slide_layout_)
 
-        assert slide_layouts._sldLayoutIdLst.xml == xml(
-            "p:sldLayoutIdLst/p:sldLayoutId{r:id=rId2}"
-        )
+        assert slide_layouts._sldLayoutIdLst.xml == xml("p:sldLayoutIdLst/p:sldLayoutId{r:id=rId2}")
         slide_master_part_.drop_rel.assert_called_once_with("rId1")
 
-    def but_it_raises_on_attempt_to_remove_slide_layout_in_use(
-        self, slide_layout_, slide_
-    ):
+    def but_it_raises_on_attempt_to_remove_slide_layout_in_use(self, slide_layout_, slide_):
         slide_layout_.used_by_slides = (slide_,)
         slide_layouts = SlideLayouts(None, None)
 
@@ -930,6 +899,8 @@ class DescribeSlideLayouts(object):
 
 
 class DescribeSlideMaster(object):
+    """Unit-test suite for `pptx.slide.SlideMaster` objects."""
+
     def it_is_a_BaseMaster_subclass(self, subclass_fixture):
         slide_master = subclass_fixture
         assert isinstance(slide_master, _BaseMaster)
@@ -957,9 +928,7 @@ class DescribeSlideMaster(object):
 
     @pytest.fixture
     def SlideLayouts_(self, request, slide_layouts_):
-        return class_mock(
-            request, "pptx.slide.SlideLayouts", return_value=slide_layouts_
-        )
+        return class_mock(request, "pptx.slide.SlideLayouts", return_value=slide_layouts_)
 
     @pytest.fixture
     def slide_layouts_(self, request):
@@ -967,6 +936,8 @@ class DescribeSlideMaster(object):
 
 
 class DescribeSlideMasters(object):
+    """Unit-test suite for `pptx.slide.SlideMasters` objects."""
+
     def it_knows_how_many_masters_it_contains(self, len_fixture):
         slide_masters, expected_value = len_fixture
         assert len(slide_masters) == expected_value
@@ -992,9 +963,7 @@ class DescribeSlideMasters(object):
 
     @pytest.fixture
     def getitem_fixture(self, part_, slide_master_, part_prop_):
-        slide_masters = SlideMasters(
-            element("p:sldMasterIdLst/p:sldMasterId{r:id=rId1}"), None
-        )
+        slide_masters = SlideMasters(element("p:sldMasterIdLst/p:sldMasterId{r:id=rId1}"), None)
         part_.related_slide_master.return_value = slide_master_
         return slide_masters, part_, slide_master_, "rId1"
 
@@ -1004,9 +973,7 @@ class DescribeSlideMasters(object):
 
     @pytest.fixture
     def iter_fixture(self, part_prop_):
-        sldMasterIdLst = element(
-            "p:sldMasterIdLst/(p:sldMasterId{r:id=a},p:sldMasterId{r:id=b})"
-        )
+        sldMasterIdLst = element("p:sldMasterIdLst/(p:sldMasterId{r:id=a},p:sldMasterId{r:id=b})")
         slide_masters = SlideMasters(sldMasterIdLst, None)
         related_slide_master_ = part_prop_.return_value.related_slide_master
         calls = [call("a"), call("b")]
@@ -1045,44 +1012,29 @@ class DescribeSlideMasters(object):
 
 
 class Describe_Background(object):
-    def it_provides_access_to_its_fill(self, fill_fixture):
-        background, cSld, expected_xml = fill_fixture[:3]
-        from_fill_parent_, fill_ = fill_fixture[3:]
+    """Unit-test suite for `pptx.slide._Background` objects."""
 
-        fill = background.fill
-
-        assert cSld.xml == expected_xml
-        from_fill_parent_.assert_called_once_with(cSld.xpath("p:bg/p:bgPr")[0])
-        assert fill is fill_
-
-    # fixtures -------------------------------------------------------
-
-    @pytest.fixture(
-        params=[
+    @pytest.mark.parametrize(
+        "cSld_xml, expected_cxml",
+        (
             ("p:cSld{a:b=c}", "p:cSld{a:b=c}/p:bg/p:bgPr/(a:noFill,a:effectLst)"),
             (
                 "p:cSld{a:b=c}/p:bg/p:bgRef",
                 "p:cSld{a:b=c}/p:bg/p:bgPr/(a:noFill,a:effectLst)",
             ),
             ("p:cSld/p:bg/p:bgPr/a:solidFill", "p:cSld/p:bg/p:bgPr/a:solidFill"),
-        ]
+        ),
     )
-    def fill_fixture(self, request, from_fill_parent_, fill_):
-        cSld_xml, expected_cxml = request.param
+    def it_provides_access_to_its_fill(self, request, cSld_xml, expected_cxml):
+        fill_ = instance_mock(request, FillFormat)
+        from_fill_parent_ = method_mock(
+            request, FillFormat, "from_fill_parent", autospec=False, return_value=fill_
+        )
         cSld = element(cSld_xml)
         background = _Background(cSld)
 
-        from_fill_parent_.return_value = fill_
+        fill = background.fill
 
-        expected_xml = xml(expected_cxml)
-        return background, cSld, expected_xml, from_fill_parent_, fill_
-
-    # fixture components ---------------------------------------------
-
-    @pytest.fixture
-    def fill_(self, request):
-        return instance_mock(request, FillFormat)
-
-    @pytest.fixture
-    def from_fill_parent_(self, request):
-        return method_mock(request, FillFormat, "from_fill_parent")
+        assert cSld.xml == xml(expected_cxml)
+        from_fill_parent_.assert_called_once_with(cSld.xpath("p:bg/p:bgPr")[0])
+        assert fill is fill_
