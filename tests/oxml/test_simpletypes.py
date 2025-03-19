@@ -1,13 +1,19 @@
-# encoding: utf-8
+"""Unit-test suite for `pptx.oxml.simpletypes` module.
 
-"""
-Test suite for pptx.oxml.simpletypes module, which contains simple type class
-definitions. A simple type in this context corresponds to an
-``<xsd:simpleType>`` definition in the XML schema and provides data
-validation and type conversion services for use by xmlchemy.
+The `simpletypes` module contains classes that each define a scalar-type that appears as an XML
+attribute.
+
+The term "simple-type", as distinct from "complex-type", is an XML Schema distinction. An XML
+attribute value must be a single string, and corresponds to a scalar value, like `bool`, `int`, or
+`str`. Complex-types describe _elements_, which can have multiple attributes as well as child
+elements.
+
+A simple type corresponds to an `<xsd:simpleType>` definition in the XML schema  e.g. `ST_Foobar`.
+The `BaseSimpleType` subclass provides data validation and type conversion services for use by
+`xmlchemy`.
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import annotations
 
 import pytest
 
@@ -19,14 +25,18 @@ from pptx.oxml.simpletypes import (
     ST_Percentage,
 )
 
-from ..unitutil.mock import method_mock, instance_mock
+from ..unitutil.mock import instance_mock, method_mock
 
 
 class DescribeBaseSimpleType(object):
-    def it_can_convert_attr_value_to_python_type(self, from_xml_fixture):
-        SimpleType, str_value_, py_value_ = from_xml_fixture
-        py_value = SimpleType.from_xml(str_value_)
-        SimpleType.convert_from_xml.assert_called_once_with(str_value_)
+    """Unit-test suite for `pptx.oxml.simpletypes.BaseSimpleType` objects."""
+
+    def it_can_convert_an_XML_attribute_value_to_a_python_type(
+        self, str_value_, py_value_, convert_from_xml_
+    ):
+        py_value = ST_SimpleType.from_xml(str_value_)
+
+        ST_SimpleType.convert_from_xml.assert_called_once_with(str_value_)
         assert py_value is py_value_
 
     def it_can_convert_python_value_to_string(self, to_xml_fixture):
@@ -53,10 +63,6 @@ class DescribeBaseSimpleType(object):
                 BaseSimpleType.validate_string(value)
 
     # fixtures -------------------------------------------------------
-
-    @pytest.fixture
-    def from_xml_fixture(self, request, str_value_, py_value_, convert_from_xml_):
-        return ST_SimpleType, str_value_, py_value_
 
     @pytest.fixture
     def to_xml_fixture(
@@ -98,13 +104,21 @@ class DescribeBaseSimpleType(object):
     @pytest.fixture
     def convert_from_xml_(self, request, py_value_):
         return method_mock(
-            request, ST_SimpleType, "convert_from_xml", return_value=py_value_
+            request,
+            ST_SimpleType,
+            "convert_from_xml",
+            autospec=False,
+            return_value=py_value_,
         )
 
     @pytest.fixture
     def convert_to_xml_(self, request, str_value_):
         return method_mock(
-            request, ST_SimpleType, "convert_to_xml", return_value=str_value_
+            request,
+            ST_SimpleType,
+            "convert_to_xml",
+            autospec=False,
+            return_value=str_value_,
         )
 
     @pytest.fixture
@@ -117,7 +131,7 @@ class DescribeBaseSimpleType(object):
 
     @pytest.fixture
     def validate_(self, request):
-        return method_mock(request, ST_SimpleType, "validate")
+        return method_mock(request, ST_SimpleType, "validate", autospec=False)
 
 
 class DescribeBaseIntType(object):
@@ -190,7 +204,7 @@ class DescribeST_HexColorRGB(object):
         if exception is None:
             try:
                 ST_HexColorRGB.validate(str_value)
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 raise AssertionError("string '%s' did not validate" % str_value)
         else:
             with pytest.raises(exception):
@@ -258,12 +272,12 @@ class DescribeST_Percentage(object):
 class ST_SimpleType(BaseSimpleType):
     @classmethod
     def convert_from_xml(cls, str_value):
-        return 666
+        return 666  # pragma: no cover
 
     @classmethod
     def convert_to_xml(cls, value):
-        return "666"
+        return "666"  # pragma: no cover
 
     @classmethod
     def validate(cls, value):
-        pass
+        pass  # pragma: no cover

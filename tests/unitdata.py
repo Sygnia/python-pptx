@@ -1,10 +1,6 @@
-# encoding: utf-8
+"""Shared objects for unit data builder modules."""
 
-"""
-Shared objects for unit data builder modules
-"""
-
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import annotations
 
 from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls
@@ -40,17 +36,6 @@ class BaseBuilder(object):
                 return self
 
             return with_xmlattr
-        else:
-            tmpl = "'%s' object has no attribute '%s'"
-            raise AttributeError(tmpl % (self.__class__.__name__, name))
-
-    def clear(self):
-        """
-        Reset this builder back to initial state so it can be reused within
-        a single test.
-        """
-        BaseBuilder.__init__(self)
-        return self
 
     @property
     def element(self):
@@ -66,15 +51,6 @@ class BaseBuilder(object):
         the children of this element.
         """
         self._child_bldrs.append(child_bldr)
-        return self
-
-    def with_text(self, text):
-        """
-        Cause *text* to be placed between the start and end tags of this
-        element. Not robust enough for mixed elements, intended only for
-        elements having no child elements.
-        """
-        self._text = text
         return self
 
     def with_nsdecls(self, *nspfxs):
@@ -100,9 +76,6 @@ class BaseBuilder(object):
             xml = "%s\n" % self._non_empty_element_xml(indent)
         return xml
 
-    def xml_bytes(self, indent=0):
-        return self.xml(indent=indent).encode("utf-8")
-
     @property
     def _empty_element_tag(self):
         return "<%s%s%s/>" % (self.__tag__, self._nsdecls, self._xmlattrs_str)
@@ -118,7 +91,12 @@ class BaseBuilder(object):
     def _non_empty_element_xml(self, indent):
         indent_str = " " * indent
         if self._text:
-            xml = "%s%s%s%s" % (indent_str, self._start_tag, self._text, self._end_tag)
+            xml = "%s%s%s%s" % (  # pragma: no cover
+                indent_str,
+                self._start_tag,
+                self._text,
+                self._end_tag,
+            )
         else:
             xml = "%s%s\n" % (indent_str, self._start_tag)
             for child_bldr in self._child_bldrs:

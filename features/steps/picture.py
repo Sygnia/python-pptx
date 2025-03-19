@@ -1,21 +1,16 @@
-# encoding: utf-8
+"""Gherkin step implementations for picture-related features."""
 
-"""
-Gherkin step implementations for picture-related features.
-"""
+from __future__ import annotations
 
-from __future__ import absolute_import
+import io
 
-from behave import given, when, then
+from behave import given, then, when
+from helpers import saved_pptx_path, test_image, test_pptx
 
 from pptx import Presentation
-from pptx.compat import BytesIO
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
 from pptx.package import Package
 from pptx.util import Inches
-
-from helpers import saved_pptx_path, test_image, test_pptx
-
 
 # given ===================================================
 
@@ -46,7 +41,7 @@ def when_I_add_the_image_filename_using_shapes_add_picture(context, filename):
 def when_I_add_the_stream_image_filename_using_add_picture(context, filename):
     shapes = context.slide.shapes
     with open(test_image(filename), "rb") as f:
-        stream = BytesIO(f.read())
+        stream = io.BytesIO(f.read())
     shapes.add_picture(stream, Inches(1.25), Inches(1.25))
 
 
@@ -60,12 +55,10 @@ def when_I_assign_member_to_picture_auto_shape_type(context, member):
 
 @then("a {ext} image part appears in the pptx file")
 def step_then_a_ext_image_part_appears_in_the_pptx_file(context, ext):
-    pkg = Package().open(saved_pptx_path)
-    partnames = [part.partname for part in pkg.parts]
+    pkg = Package.open(saved_pptx_path)
+    partnames = frozenset(p.partname for p in pkg.iter_parts())
     image_partname = "/ppt/media/image1.%s" % ext
-    assert image_partname in partnames, "got %s" % [
-        p for p in partnames if "image" in p
-    ]
+    assert image_partname in partnames, "got %s" % [p for p in partnames if "image" in p]
 
 
 @then("picture.auto_shape_type == MSO_AUTO_SHAPE_TYPE.{member}")
